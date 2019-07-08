@@ -1,0 +1,1159 @@
+rule("# Global initialization")
+{
+	event
+	{
+		Ongoing - Global;
+	}
+
+	conditions
+	{
+		Global Variable(X) == 0;
+	}
+
+	actions
+	{
+		Set Global Variable(A, Empty Array);
+		Set Global Variable(B, Empty Array);
+		Set Global Variable(C, Empty Array);
+		Set Global Variable(D, Empty Array);
+		Set Global Variable(F, Empty Array);
+		Set Global Variable At Index(G, 0, 3);
+		Set Global Variable At Index(G, 1, 0.150);
+		Set Global Variable At Index(G, 2, 45);
+		Set Global Variable At Index(G, 3, 4);
+		Go To Assemble Heroes;
+		Unpause Match Time;
+	}
+}
+
+rule("@ Initialize players")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	actions
+	{
+		Set Player Variable(Event Player, F, Empty Array);
+	}
+}
+
+rule("# Damage modification")
+{
+	event
+	{
+		Ongoing - Global;
+	}
+
+	actions
+	{
+		Start Damage Modification(Filtered Array(All Players(All Teams), Compare(Hero Of(Current Array Element), !=, Hero(Junkrat))),
+			Filtered Array(All Players(All Teams), Compare(Hero Of(Current Array Element), !=, Hero(Junkrat))), 0, Receivers and Damagers);
+	}
+}
+
+rule("# Disable scoring")
+{
+	event
+	{
+		Ongoing - Global;
+	}
+
+	actions
+	{
+		Disable Built-In Game Mode Scoring;
+		Disable Built-In Game Mode Announcer;
+	}
+}
+
+rule("# In Assembling Heroes")
+{
+	event
+	{
+		Ongoing - Global;
+	}
+
+	conditions
+	{
+		Is Assembling Heroes == True;
+	}
+
+	actions
+	{
+		Unpause Match Time;
+		Set Match Time(10);
+		Destroy All Effects;
+	}
+}
+
+rule("# Game STARTED - Choose Junkrat")
+{
+	event
+	{
+		Ongoing - Global;
+	}
+
+	conditions
+	{
+		Is Game In Progress == True;
+		Global Variable(X) == 0;
+	}
+
+	actions
+	{
+		Set Player Variable(Random Value In Array(All Players(All Teams)), A, True);
+		Set Global Variable(X, 1);
+		Stop All Damage Modifications;
+		Wait(0.250, Ignore Condition);
+		Start Damage Modification(Filtered Array(All Players(All Teams), Compare(Hero Of(Current Array Element), !=, Hero(Junkrat))),
+			Filtered Array(All Players(All Teams), Compare(Hero Of(Current Array Element), !=, Hero(Junkrat))), 0, Receivers and Damagers);
+	}
+}
+
+rule("# Restart - No Junkrat")
+{
+	event
+	{
+		Ongoing - Global;
+	}
+
+	conditions
+	{
+		Global Variable(X) == 1;
+		Count Of(Filtered Array(All Players(All Teams), Compare(Player Variable(Current Array Element, A), ==, True))) == 0;
+	}
+
+	actions
+	{
+		Wait(3, Abort When False);
+		Set Global Variable(X, 2);
+		Small Message(All Players(All Teams), String("{0} {1}", String("No", Null, Null, Null), String("{0}, {1}", Hero(Junkrat), String(
+			"Stopping", Null, Null, Null), Null), Null));
+	}
+}
+
+rule("# Restart - Junkrat AFK")
+{
+	event
+	{
+		Ongoing - Global;
+	}
+
+	conditions
+	{
+		Global Variable(X) == 1;
+		Count Of(Filtered Array(All Players(All Teams), And(Compare(Player Variable(Current Array Element, A), ==, True), Compare(
+			Has Spawned(Current Array Element), ==, True)))) == 0;
+		Is Game In Progress == True;
+	}
+
+	actions
+	{
+		Wait(15, Abort When False);
+		Set Global Variable(X, 2);
+		Small Message(All Players(All Teams), String("{0} {1}", String("No", Null, Null, Null), String("{0}, {1}", Hero(Junkrat), String(
+			"Stopping", Null, Null, Null), Null), Null));
+	}
+}
+
+rule("@ All ROUND START - HUD")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	conditions
+	{
+		Global Variable(X) == 1;
+	}
+
+	actions
+	{
+		Create HUD Text(Event Player, Null, String("{0}: {1}", String("{0} {1} {2}", String("Total", Null, Null, Null), String("Domes",
+			Null, Null, Null), String("Dropped", Null, Null, Null)), Count Of(Global Variable(B)), Null), Null, Top, 50, White, White,
+			White, Visible To and String);
+		Create HUD Text(Event Player, Null, String("{0} {1}", String("Time", Null, Null, Null), String("Remaining", Null, Null, Null),
+			Null), Null, Left, 10, White, Yellow, White, Visible To and String);
+		Create HUD Text(Event Player, String("{0} sec", Subtract(Value In Array(Global Variable(G), 2), Subtract(Global Variable(U),
+			Value In Array(Sorted Array(Global Variable(B), Current Array Element), 0))), Null, Null), Null, Null, Left, 11, Yellow,
+			Yellow, White, Visible To and String);
+		Create HUD Text(Event Player, Null, String("{0} {1}", String("Time", Null, Null, Null), String("Remaining", Null, Null, Null),
+			Null), Null, Right, 10, White, Yellow, White, Visible To and String);
+		Create HUD Text(Event Player, String("{0} sec", Subtract(Value In Array(Global Variable(G), 2), Subtract(Global Variable(U),
+			Value In Array(Sorted Array(Global Variable(B), Current Array Element), 0))), Null, Null), Null, Null, Right, 11, Yellow,
+			Yellow, White, Visible To and String);
+	}
+}
+
+rule("@ Junkrat ROUND START")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	conditions
+	{
+		Global Variable(X) == 1;
+		Player Variable(Event Player, A) == True;
+		Is Alive(Event Player) == True;
+		Has Spawned(Event Player) == True;
+	}
+
+	actions
+	{
+		Set Player Variable(Event Player, C, 6);
+		Wait(2, Abort When False);
+		Big Message(Event Player, String("{0}: {1} and {2}", Hero(Junkrat), String("{0} {1}", String("Drop", Null, Null, Null), String(
+			"Domes", Null, Null, Null), Null), String("Survive", Null, Null, Null)));
+		Set Objective Description(Event Player, String("{0} and {1}", String("{0} {1}", String("Drop", Null, Null, Null), String("Domes",
+			Null, Null, Null), Null), String("Survive", Null, Null, Null), Null), Visible To and String);
+		Create HUD Text(Event Player, Null, String("{0}: {1}", String("{0} {1}", String("Cooldown", Null, Null, Null), String(
+			"Current Level", Null, Null, Null), Null), String("{0} sec", Round To Integer(Player Variable(Event Player, D), Up), Null,
+			Null), Null), Null, Right, 20, White, White, White, Visible To and String);
+		Wait(3, Abort When False);
+		Small Message(Event Player, String("{0} {1} {2}", Hero Icon String(Hero(Junkrat)), String("{0} = {1}", Hero(Junkrat), String("You",
+			Null, Null, Null), Null), Hero Icon String(Hero(Junkrat))));
+		Small Message(Filtered Array(All Players(All Teams), Compare(Current Array Element, !=, Event Player)), String("{0} {1} {2}",
+			Hero Icon String(Hero(Junkrat)), String("{0} = {1}", Hero(Junkrat), Event Player, Null), Hero Icon String(Hero(Junkrat))));
+	}
+}
+
+rule("@ Defusers ROUND START")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	conditions
+	{
+		Global Variable(X) == 1;
+		Player Variable(Event Player, A) == False;
+		Is Alive(Event Player) == True;
+		Has Spawned(Event Player) == True;
+	}
+
+	actions
+	{
+		Set Gravity(Event Player, 50);
+		Set Max Health(Event Player, 100);
+		Wait(2, Abort When False);
+		Set Objective Description(Event Player, String("{0} and {1}", String("{0} {1}", String("Stabilize", Null, Null, Null), String(
+			"Domes", Null, Null, Null), Null), String("{0} {1}", String("Kill", Null, Null, Null), Hero(Junkrat), Null), Null),
+			Visible To and String);
+		Big Message(Event Player, String("{0}: {1} and {2}", String("Hunter", Null, Null, Null), String("{0} {1}", String("Stabilize",
+			Null, Null, Null), String("Domes", Null, Null, Null), Null), String("{0} {1}", String("Kill", Null, Null, Null), Hero(Junkrat),
+			Null)));
+	}
+}
+
+rule("@ Turn into JUNKRAT")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	conditions
+	{
+		Player Variable(Event Player, A) == True;
+	}
+
+	actions
+	{
+		Start Forcing Player To Be Hero(Event Player, Hero(Junkrat));
+		Set Invisible(Event Player, All);
+		Set Player Variable At Index(Event Player, B, 0, 3);
+		Set Player Variable At Index(Event Player, B, 1, False);
+		Chase Player Variable At Rate(Event Player, C, 0, 1, None);
+		Set Primary Fire Enabled(Event Player, False);
+		Chase Player Variable At Rate(Event Player, O, 0, 1, None);
+		Set Move Speed(Event Player, 115);
+		Disable Built-In Game Mode Respawning(Event Player);
+		Set Gravity(Event Player, 100);
+		Modify Player Variable(Event Player, G, Add, 1);
+		Set Max Health(Event Player, Add(100, Multiply(20, Count Of(All Players(All Teams)))));
+		Chase Player Variable At Rate(Event Player, D, Value In Array(Global Variable(G), 3), Divide(Subtract(12, Value In Array(
+			Global Variable(G), 3)), 180), None);
+		Set Player Variable(Event Player, D, 12);
+		Create HUD Text(All Players(All Teams), Hero Icon String(Hero(Junkrat)), String("{0} {1}", String("Life", Null, Null, Null),
+			String("Remaining", Null, Null, Null), Null), String("{0}%", Round To Integer(Multiply(Normalized Health(Event Player), 100),
+			Up), Null, Null), Right, 999, Red, White, Yellow, String);
+	}
+}
+
+rule("@ Junkrat HEAL ON SPAWN")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	conditions
+	{
+		Player Variable(Event Player, A) == True;
+		Has Spawned(Event Player) == True;
+		Is Alive(Event Player) == True;
+	}
+
+	actions
+	{
+		Heal(Event Player, Null, 100000);
+	}
+}
+
+rule("@ Junkrat INVALID SURFACE")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	conditions
+	{
+		Player Variable(Event Player, C) == 0;
+		Player Variable(Event Player, A) == True;
+		Or(Compare(Ray Cast Hit Position(Eye Position(Event Player), Add(Eye Position(Event Player), Multiply(Facing Direction Of(
+			Event Player), Value In Array(Global Variable(G), 0))), Null, All Players(All Teams), False), ==, Add(Eye Position(
+			Event Player), Multiply(Facing Direction Of(Event Player), Value In Array(Global Variable(G), 0)))), Not(Is On Ground(
+			Event Player))) == True;
+	}
+
+	actions
+	{
+		Skip If(Compare(Value In Array(Player Variable(Event Player, B), 2), ==, False), 1);
+		Destroy Effect(Value In Array(Player Variable(Event Player, B), 2));
+		Set Player Variable At Index(Event Player, B, 2, 0);
+		Set Player Variable At Index(Event Player, B, 1, False);
+	}
+}
+
+rule("@ Junkrat VALID SURFACE")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	conditions
+	{
+		Player Variable(Event Player, C) == 0;
+		Player Variable(Event Player, A) == True;
+		Ray Cast Hit Position(Eye Position(Event Player), Add(Eye Position(Event Player), Multiply(Facing Direction Of(Event Player),
+			Value In Array(Global Variable(G), 0))), Empty Array, All Players(All Teams), True) != Add(Eye Position(Event Player),
+			Multiply(Facing Direction Of(Event Player), Value In Array(Global Variable(G), 0)));
+		Is On Ground(Event Player) == True;
+	}
+
+	actions
+	{
+		Skip If(Compare(Value In Array(Player Variable(Event Player, B), 2), ==, False), 1);
+		Destroy Effect(Value In Array(Player Variable(Event Player, B), 2));
+		Create Effect(Event Player, Sphere, Purple, Ray Cast Hit Position(Eye Position(Event Player), Add(Eye Position(Event Player),
+			Multiply(Facing Direction Of(Event Player), Value In Array(Global Variable(G), 0))), Null, All Players(All Teams), False),
+			Value In Array(Global Variable(G), 1), Visible To Position and Radius);
+		Set Player Variable At Index(Event Player, B, 2, Last Created Entity);
+		Set Player Variable At Index(Event Player, B, 1, True);
+	}
+}
+
+rule("@ Junkrat PLANT BOMB")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	conditions
+	{
+		Is Button Held(Event Player, Primary Fire) == True;
+		Player Variable(Event Player, A) == True;
+		Value In Array(Player Variable(Event Player, B), 1) == True;
+		Player Variable(Event Player, C) == 0;
+		Is On Ground(Event Player) == True;
+	}
+
+	actions
+	{
+		Set Player Variable(Event Player, Z, Ray Cast Hit Position(Eye Position(Event Player), Add(Eye Position(Event Player), Multiply(
+			Facing Direction Of(Event Player), Value In Array(Global Variable(G), 0))), Empty Array, All Players(All Teams), False));
+		Set Player Variable(Event Player, C, Round To Integer(Player Variable(Event Player, D), Up));
+		Create Effect(All Players(All Teams), Sphere, Red, Player Variable(Event Player, Z), Value In Array(Global Variable(G), 1),
+			Visible To);
+		Modify Global Variable(B, Append To Array, Total Time Elapsed);
+		Modify Global Variable(C, Append To Array, Player Variable(Event Player, Z));
+		Modify Global Variable(D, Append To Array, Last Created Entity);
+		Modify Global Variable(F, Append To Array, Total Time Elapsed);
+		Play Effect(All Players(All Teams), Explosion Sound, White, Player Variable(Event Player, Z), 100);
+		Play Effect(All Players(All Teams), Good Explosion, Red, Player Variable(Event Player, Z), 0.100);
+	}
+}
+
+rule("@ Junkrat plant bomb COOLDOWN")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	conditions
+	{
+		Player Variable(Event Player, C) > 0;
+		Player Variable(Event Player, A) == True;
+	}
+
+	actions
+	{
+		Destroy Effect(Value In Array(Player Variable(Event Player, B), 2));
+		Set Player Variable At Index(Event Player, B, 2, 0);
+	}
+}
+
+rule("@ Junkrat took DAMAGE")
+{
+	event
+	{
+		Player took damage;
+		All;
+		All;
+	}
+
+	conditions
+	{
+		Player Variable(Event Player, A) == True;
+	}
+
+	actions
+	{
+		Set Player Variable(Event Player, O, 1);
+	}
+}
+
+rule("@ Junkrat set INVISIBLE")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	conditions
+	{
+		Player Variable(Event Player, A) == True;
+		Player Variable(Event Player, O) == 0;
+		Player Variable(Event Player, U) == 0;
+	}
+
+	actions
+	{
+		Destroy HUD Text(Player Variable(Event Player, P));
+		Create HUD Text(Event Player, Null, String("Invisible", Null, Null, Null), Null, Top, 100, Yellow, White, White,
+			Visible To and String);
+		Set Player Variable(Event Player, P, Last Text ID);
+		Set Invisible(Event Player, All);
+		Destroy In-World Text(Player Variable(Event Player, R));
+		Clear Status(Event Player, Burning);
+		Destroy Effect(Player Variable(Event Player, Q));
+	}
+}
+
+rule("@ Junkrat set VISIBLE")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	conditions
+	{
+		Player Variable(Event Player, A) == True;
+		Or(Compare(Player Variable(Event Player, O), >, 0), Player Variable(Event Player, U)) == 5;
+	}
+
+	actions
+	{
+		Destroy HUD Text(Player Variable(Event Player, P));
+		Create HUD Text(Event Player, Null, String("Visible", Null, Null, Null), Null, Top, 100, Yellow, Yellow, White,
+			Visible To and String);
+		Set Player Variable(Event Player, P, Last Text ID);
+		Set Invisible(Event Player, None);
+		Create In-World Text(All Players(All Teams), Hero Icon String(Hero(Junkrat)), Event Player, 2, Do Not Clip,
+			Visible To Position and String);
+		Set Player Variable(Event Player, R, Last Text ID);
+		Set Status(Event Player, Null, Burning, 9999);
+		Destroy Effect(Player Variable(Event Player, Q));
+		Create Effect(All Players(All Teams), Bad Aura Sound, White, Event Player, 200, None);
+		Set Player Variable(Event Player, Q, Last Created Entity);
+		Play Effect(All Players(All Teams), Debuff Impact Sound, White, Event Player, 200);
+	}
+}
+
+rule("@ Junkrat turn off COOLDOWN HUD")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	conditions
+	{
+		Player Variable(Event Player, A) == True;
+		Global Variable(X) == 1;
+		Player Variable(Event Player, C) == 0;
+		Is Alive(Event Player) == True;
+	}
+
+	actions
+	{
+		Destroy HUD Text(Player Variable(Event Player, T));
+		Create HUD Text(Event Player, String("{0} {1}", String("Dome", Null, Null, Null), String("{0}!", String("Ready", Null, Null, Null),
+			Null, Null), Null), Null, Null, Top, 101, White, Yellow, White, Visible To and String);
+		Set Player Variable(Event Player, T, Last Text ID);
+	}
+}
+
+rule("@ Junkrat turn on COOLDOWN HUD")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	conditions
+	{
+		Player Variable(Event Player, A) == True;
+		Global Variable(X) == 1;
+		Player Variable(Event Player, C) > 0;
+		Is Alive(Event Player) == True;
+	}
+
+	actions
+	{
+		Destroy HUD Text(Player Variable(Event Player, T));
+		Create HUD Text(Event Player, Null, String("{0}: {1}", String("{0} {1} {2}", String("Next", Null, Null, Null), String("Dome", Null,
+			Null, Null), String("Ready", Null, Null, Null)), String("{0} sec", Round To Integer(Player Variable(Event Player, C), Up),
+			Null, Null), Null), Null, Top, 101, White, Yellow, White, Visible To and String);
+		Set Player Variable(Event Player, T, Last Text ID);
+	}
+}
+
+rule("@ Junkrat start PLACE BOMB WARNING COUNTDOWN")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	conditions
+	{
+		Player Variable(Event Player, C) == 0;
+		Player Variable(Event Player, A) == True;
+		Is Alive(Event Player) == True;
+	}
+
+	actions
+	{
+		Set Player Variable(Event Player, U, 0);
+		Wait(Round To Integer(Player Variable(Event Player, D), Up), Abort When False);
+		Chase Player Variable At Rate(Event Player, U, 5, 1, None);
+	}
+}
+
+rule("@ Junkrat stop PLACE BOMB WARNING COUNTDOWN")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	conditions
+	{
+		Player Variable(Event Player, C) > 0;
+		Player Variable(Event Player, A) == True;
+		Is Alive(Event Player) == True;
+	}
+
+	actions
+	{
+		Set Player Variable(Event Player, U, 0);
+		Stop Chasing Player Variable(Event Player, U);
+	}
+}
+
+rule("@ Junkrat add PLACE BOMB WARNING HUD")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	conditions
+	{
+		Player Variable(Event Player, A) == True;
+		Player Variable(Event Player, U) > 0;
+		Player Variable(Event Player, U) < 5;
+		Global Variable(X) == 1;
+		Is Alive(Event Player) == True;
+	}
+
+	actions
+	{
+		Destroy HUD Text(Player Variable(Event Player, V));
+		Create HUD Text(Event Player, String("{0}: {1}", String("{0} {1}", String("{0}!", String("{0} {1}", String("Drop", Null, Null,
+			Null), String("Dome", Null, Null, Null), Null), Null, Null), String("Revealing", Null, Null, Null), Null), Round To Integer(
+			Subtract(5, Player Variable(Event Player, U)), Up), Null), Null, Null, Top, 200, Yellow, White, White, Visible To and String);
+		Set Player Variable(Event Player, V, Last Text ID);
+		Wait(0.300, Abort When False);
+		Destroy HUD Text(Player Variable(Event Player, V));
+		Wait(0.100, Abort When False);
+		Loop If Condition Is True;
+	}
+}
+
+rule("@ Junkrat remove PLACE BOMB WARNING HUD")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	conditions
+	{
+		Player Variable(Event Player, A) == True;
+		Player Variable(Event Player, U) == 0;
+		Global Variable(X) == 1;
+		Is Alive(Event Player) == True;
+	}
+
+	actions
+	{
+		Destroy HUD Text(Player Variable(Event Player, V));
+	}
+}
+
+rule("@ Junkrat DIED")
+{
+	event
+	{
+		Player Died;
+		All;
+		All;
+	}
+
+	conditions
+	{
+		Player Variable(Event Player, A) == True;
+		Global Variable(X) == 1;
+	}
+
+	actions
+	{
+		Set Global Variable(X, 2);
+		Big Message(All Players(All Teams), String("{0} {1}", String("Hunters", Null, Null, Null), String("Win", Null, Null, Null), Null));
+		Modify Player Score(Filtered Array(All Players(All Teams), Compare(Hero Of(Current Array Element), !=, Hero(Junkrat))), 1);
+	}
+}
+
+rule("@ Defusers start DEFUSING")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	conditions
+	{
+		Is Button Held(Event Player, Interact) == True;
+		Global Variable(X) == 1;
+	}
+
+	actions
+	{
+		Set Player Variable(Event Player, Z, Filtered Array(Global Variable(C), Compare(Distance Between(Current Array Element,
+			Ray Cast Hit Position(Eye Position(Event Player), Add(Eye Position(Event Player), Multiply(Facing Direction Of(Event Player),
+			20)), Null, Event Player, False)), <=, 0.500)));
+		Abort If(Compare(Player Variable(Event Player, Z), ==, Empty Array));
+		Set Player Variable(Event Player, E, 0);
+		Chase Player Variable At Rate(Event Player, E, Value In Array(Global Variable(G), 3), 1, None);
+		Set Player Variable At Index(Event Player, F, 0, Index Of Array Value(Global Variable(C), Value In Array(Player Variable(Event Player, Z), 0)));
+		Create In-World Text(All Players(All Teams), String("{0} {1} {2}", String("Stabilizing", Null, Null, Null), String("...", Null,
+			Null, Null), Round To Integer(Subtract(Value In Array(Global Variable(G), 3), Player Variable(Event Player, E)), Up)),
+			Value In Array(Global Variable(C), Value In Array(Player Variable(Event Player, F), 0)), 1.500, Do Not Clip,
+			Visible To Position and String);
+		Set Player Variable At Index(Event Player, F, 1, Last Text ID);
+		Create Effect(All Players(All Teams), Sphere, Blue, Value In Array(Global Variable(C), Value In Array(Player Variable(Event Player,
+			F), 0)), Add(Value In Array(Global Variable(G), 1), Multiply(Subtract(0.500, Value In Array(Global Variable(G), 1)), Subtract(
+			1, Divide(Player Variable(Event Player, E), Value In Array(Global Variable(G), 3))))), Visible To Position and Radius);
+		Set Player Variable At Index(Event Player, F, 2, Last Created Entity);
+	}
+}
+
+rule("@ Defusers DEFUSING COMPLETE")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	conditions
+	{
+		Player Variable(Event Player, E) == Value In Array(Global Variable(G), 3);
+		Global Variable(X) == 1;
+	}
+
+	actions
+	{
+		Set Player Variable(Event Player, Z, Value In Array(Player Variable(Event Player, F), 0));
+		Play Effect(All Players(All Teams), Good Explosion, Purple, Value In Array(Global Variable(C), Player Variable(Event Player, Z)),
+			1);
+		Play Effect(All Players(All Teams), Buff Explosion Sound, Purple, Value In Array(Global Variable(C), Player Variable(Event Player,
+			Z)), 100);
+		Destroy Effect(Value In Array(Global Variable(D), Player Variable(Event Player, Z)));
+		Modify Global Variable(B, Remove From Array By Index, Player Variable(Event Player, Z));
+		Modify Global Variable(C, Remove From Array By Index, Player Variable(Event Player, Z));
+		Modify Global Variable(D, Remove From Array By Index, Player Variable(Event Player, Z));
+		Modify Global Variable(F, Remove From Array By Index, Player Variable(Event Player, Z));
+		Destroy In-World Text(Value In Array(Player Variable(Event Player, F), 1));
+	}
+}
+
+rule("@ Defusers - defuse failed - END DEFUSE")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	conditions
+	{
+		Player Variable(Event Player, E) == -1.000;
+	}
+
+	actions
+	{
+		Destroy Effect(Value In Array(Player Variable(Event Player, F), 2));
+		Destroy In-World Text(Value In Array(Player Variable(Event Player, F), 1));
+		Stop Chasing Player Variable(Event Player, E);
+		Set Player Variable(Event Player, F, Empty Array);
+		Set Player Variable(Event Player, E, 0);
+	}
+}
+
+rule("@ Defusers - defuse failed - NO LONGER HOLDING BUTTON")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	conditions
+	{
+		Is Button Held(Event Player, Interact) == False;
+		Player Variable(Event Player, E) > 0;
+	}
+
+	actions
+	{
+		Set Player Variable(Event Player, E, -1.000);
+		Stop Chasing Player Variable(Event Player, E);
+	}
+}
+
+rule("@ Defusers - defuse failed - TOO FAR AWAY")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	conditions
+	{
+		Distance Between(Value In Array(Global Variable(C), Value In Array(Player Variable(Event Player, F), 0)), Ray Cast Hit Position(
+			Eye Position(Event Player), Add(Eye Position(Event Player), Multiply(Facing Direction Of(Event Player), 30)), Null,
+			Event Player, False)) > 1;
+		Player Variable(Event Player, E) > 0;
+	}
+
+	actions
+	{
+		Set Player Variable(Event Player, E, -1.000);
+		Stop Chasing Player Variable(Event Player, E);
+	}
+}
+
+rule("@ Defusers - defuse failed - GAME ENDED")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	conditions
+	{
+		Global Variable(X) != 1;
+		Player Variable(Event Player, E) > 0;
+	}
+
+	actions
+	{
+		Set Player Variable(Event Player, E, -1.000);
+		Stop Chasing Player Variable(Event Player, E);
+	}
+}
+
+rule("# Tick bombs")
+{
+	event
+	{
+		Ongoing - Global;
+	}
+
+	conditions
+	{
+		Count Of(Global Variable(B)) > 0;
+		Global Variable(X) == 1;
+	}
+
+	actions
+	{
+		Set Global Variable(U, Total Time Elapsed);
+		Set Global Variable(I, Modulo(Global Variable(I), Count Of(Global Variable(B))));
+		Set Global Variable At Index(Z, 0, Subtract(Total Time Elapsed, Value In Array(Global Variable(B), Global Variable(I))));
+		Set Global Variable At Index(Z, 1, Subtract(1, Divide(Value In Array(Global Variable(Z), 0), Value In Array(Global Variable(G),
+			2))));
+		Set Global Variable At Index(Z, 2, Subtract(Total Time Elapsed, Value In Array(Global Variable(F), Global Variable(I))));
+		Set Global Variable At Index(Z, 3, Add(-0.200, Multiply(Value In Array(Global Variable(Z), 1), 5.500)));
+		Set Global Variable At Index(Z, 3, Max(Value In Array(Global Variable(Z), 3), 0.150));
+		Skip If(Compare(Value In Array(Global Variable(Z), 2), <, Value In Array(Global Variable(Z), 3)), 3);
+		Play Effect(All Players(All Teams), Good Explosion, Red, Value In Array(Global Variable(C), Global Variable(I)), 0.001);
+		Play Effect(All Players(All Teams), Explosion Sound, White, Value In Array(Global Variable(C), Global Variable(I)), 100);
+		Set Global Variable At Index(F, Global Variable(I), Add(Value In Array(Global Variable(F), Global Variable(I)), Value In Array(
+			Global Variable(Z), 3)));
+		Skip If(Compare(Value In Array(Global Variable(Z), 0), >=, Value In Array(Global Variable(G), 2)), 4);
+		Wait(0.016, Ignore Condition);
+		Modify Global Variable(I, Add, 1);
+		Loop If Condition Is True;
+		Abort;
+		Set Global Variable(W, Value In Array(Global Variable(C), Global Variable(I)));
+		Play Effect(All Players(All Teams), Bad Explosion, Red, Global Variable(W), 3);
+		Play Effect(All Players(All Teams), Debuff Impact Sound, Red, Global Variable(W), 100);
+		Destroy Effect(Value In Array(Global Variable(D), Global Variable(I)));
+		Modify Global Variable(B, Remove From Array By Index, Global Variable(I));
+		Modify Global Variable(C, Remove From Array By Index, Global Variable(I));
+		Modify Global Variable(D, Remove From Array By Index, Global Variable(I));
+		Modify Global Variable(F, Remove From Array By Index, Global Variable(I));
+		disabled Kill(Filtered Array(All Players(All Teams), Compare(Player Variable(Current Array Element, A), !=, True)), Players On Hero(Hero(
+			Junkrat), All Teams));
+		Big Message(All Players(All Teams), String("{0} {1}", Hero(Junkrat), String("Wins", Null, Null, Null), Null));
+		Modify Player Score(Filtered Array(All Players(All Teams), Compare(Hero Of(Current Array Element), ==, Hero(Junkrat))), 1);
+		Set Global Variable(X, 2);
+	}
+}
+
+rule("# Post game")
+{
+	event
+	{
+		Ongoing - Global;
+	}
+
+	conditions
+	{
+		Global Variable(X) == 2;
+	}
+
+	actions
+	{
+		Pause Match Time;
+		Wait(5, Ignore Condition);
+		Unpause Match Time;
+		Go To Assemble Heroes;
+		Set Global Variable(X, 0);
+	}
+}
+
+rule("@ All post game")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	conditions
+	{
+		Global Variable(X) == 2;
+	}
+
+	actions
+	{
+		Destroy Effect(Value In Array(Player Variable(Event Player, B), 2));
+		Destroy Effect(Value In Array(Player Variable(Event Player, F), 2));
+		Destroy All HUD Text;
+		Set Player Variable(Event Player, E, 0);
+		Set Player Variable(Event Player, F, Empty Array);
+		Set Player Variable(Event Player, A, False);
+		Stop Forcing Player To Be Hero(Event Player);
+		Set Primary Fire Enabled(Event Player, True);
+		Set Invisible(Event Player, None);
+		Set Move Speed(Event Player, 100);
+		Enable Built-In Game Mode Respawning(Event Player);
+		Destroy All Icons;
+		Destroy All In-World Text;
+		Stop Chasing Player Variable(Event Player, E);
+		Clear Status(Event Player, Burning);
+		Stop Chasing Player Variable(Event Player, U);
+		Play Effect(Event Player, Explosion Sound, White, Event Player, 100);
+		Set Player Variable(Event Player, U, 0);
+	}
+}
+
+rule("# End explosion start")
+{
+	event
+	{
+		Ongoing - Global;
+	}
+
+	conditions
+	{
+		Global Variable(X) == 2;
+		Global Variable(W) != 0;
+	}
+
+	actions
+	{
+		Stop All Damage Modifications;
+		Set Global Variable(Y, Value In Array(Global Variable(G), 1));
+		Create Effect(All Players(All Teams), Orb, Red, Global Variable(W), 2, Visible To Position and Radius);
+		Create Effect(All Players(All Teams), Energy Sound, Red, Global Variable(W), Multiply(Global Variable(Y), 1),
+			Visible To Position and Radius);
+		Create Effect(All Players(All Teams), Sparkles Sound, Red, Global Variable(W), Multiply(Global Variable(Y), 1),
+			Visible To Position and Radius);
+		Create Effect(All Players(All Teams), Ring, Red, Global Variable(W), Multiply(Global Variable(Y), 0.200),
+			Visible To Position and Radius);
+		Create Effect(All Players(All Teams), Ring, Red, Global Variable(W), Multiply(Global Variable(Y), 0.400),
+			Visible To Position and Radius);
+		Create Effect(All Players(All Teams), Ring, Red, Global Variable(W), Multiply(Global Variable(Y), 0.600),
+			Visible To Position and Radius);
+		Create Effect(All Players(All Teams), Ring, Red, Global Variable(W), Multiply(Global Variable(Y), 0.800),
+			Visible To Position and Radius);
+		Create Effect(All Players(All Teams), Ring, Red, Global Variable(W), Multiply(Global Variable(Y), 1.200),
+			Visible To Position and Radius);
+		Create Effect(All Players(All Teams), Good Aura, Red, Global Variable(W), Multiply(Global Variable(Y), 0.700),
+			Visible To Position and Radius);
+		Create Effect(All Players(All Teams), Good Aura, Yellow, Global Variable(W), Multiply(Global Variable(Y), 0.300),
+			Visible To Position and Radius);
+		Create Effect(All Players(All Teams), Sphere, Red, Add(Global Variable(W), Vector(Random Real(Multiply(Global Variable(Y), -0.050),
+			Multiply(Global Variable(Y), 0.050)), Random Real(Multiply(Global Variable(Y), -0.050), Multiply(Global Variable(Y), 0.050)),
+			Random Real(Multiply(Global Variable(Y), -0.050), Multiply(Global Variable(Y), 0.050)))), Multiply(Global Variable(Y),
+			Sine From Degrees(Global Variable(Y))), Visible To Position and Radius);
+		Create Effect(All Players(All Teams), Sphere, Yellow, Add(Global Variable(W), Vector(Random Real(Multiply(Global Variable(Y),
+			-0.050), Multiply(Global Variable(Y), 0.050)), Random Real(Multiply(Global Variable(Y), -0.050), Multiply(Global Variable(Y),
+			0.050)), Random Real(Multiply(Global Variable(Y), -0.050), Multiply(Global Variable(Y), 0.050)))), Multiply(Global Variable(Y),
+			1), Visible To Position and Radius);
+		Chase Global Variable At Rate(Y, 1000, 60, None);
+		Wait(5, Ignore Condition);
+		Stop Chasing Global Variable(Y);
+		Set Global Variable(W, 0);
+	}
+}
+
+rule("@ End explosion kill players")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	conditions
+	{
+		Global Variable(X) == 2;
+		Distance Between(Position Of(Event Player), Global Variable(W)) <= Subtract(Global Variable(Y), 4);
+		Global Variable(W) != 0;
+		Player Variable(Event Player, A) != True;
+	}
+
+	actions
+	{
+		Apply Impulse(Event Player, Direction Towards(Global Variable(W), Position Of(Event Player)), 60, To World,
+			Cancel Contrary Motion);
+		Apply Impulse(Event Player, Up, 20, To World, Cancel Contrary Motion);
+		Wait(0.100, Ignore Condition);
+		Kill(Event Player, Value In Array(Filtered Array(All Players(All Teams), Compare(Hero Of(Current Array Element), ==, Hero(
+			Junkrat))), 0));
+	}
+}
+
+rule("@ Junkrat add REVEALED")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	conditions
+	{
+		Player Variable(Event Player, A) == True;
+		Player Variable(Event Player, U) == 5;
+	}
+
+	actions
+	{
+		Destroy HUD Text(Player Variable(Event Player, V));
+		Create HUD Text(Event Player, String("{0} - {1}", String("Revealed", Null, Null, Null), String("{0}!!", String("{0} {1}", String(
+			"Drop", Null, Null, Null), String("Dome", Null, Null, Null), Null), Null, Null), Null), Null, Null, Top, 200, Yellow, White,
+			White, Visible To and String);
+		Set Player Variable(Event Player, V, Last Text ID);
+		Wait(0.300, Abort When False);
+		Destroy HUD Text(Player Variable(Event Player, V));
+		Wait(0.100, Abort When False);
+		Loop If Condition Is True;
+	}
+}
+
+disabled rule("# create bomb pulse")
+{
+	event
+	{
+		Ongoing - Global;
+	}
+
+	conditions
+	{
+		Count Of(Global Variable(B)) > 0;
+		Global Variable(X) == 1;
+	}
+
+	actions
+	{
+		Set Global Variable At Index(H, 1, 0);
+		Set Global Variable At Index(H, 2, 1.100);
+		Create Effect(All Players(All Teams), Sphere, Red, Value In Array(Global Variable(C), Value In Array(Global Variable(H), 1)),
+			Multiply(Value In Array(Global Variable(G), 1), Multiply(Value In Array(Global Variable(H), 2), Random Real(0.990, 1.010))),
+			Position and Radius);
+		Set Global Variable At Index(H, 0, Last Created Entity);
+	}
+}
+
+disabled rule("# destroy bomb pulse")
+{
+	event
+	{
+		Ongoing - Global;
+	}
+
+	conditions
+	{
+		Or(Compare(Global Variable(X), !=, 1), Compare(Count Of(Global Variable(B)), ==, 0)) == True;
+	}
+
+	actions
+	{
+		Destroy Effect(Value In Array(Global Variable(H), 0));
+		Set Global Variable At Index(H, 0, 0);
+	}
+}
+
+disabled rule("# update bomb pulse")
+{
+	event
+	{
+		Ongoing - Global;
+	}
+
+	conditions
+	{
+		Value In Array(Global Variable(H), 0) != False;
+	}
+
+	actions
+	{
+		Wait(0.064, Abort When False);
+		Set Global Variable At Index(H, 2, 1);
+		Wait(Max(0.016, Divide(Subtract(0.400, Multiply(Subtract(Count Of(Global Variable(B)), 1), 0.064)), Count Of(Global Variable(B)))),
+			Abort When False);
+		Set Global Variable At Index(H, 1, Modulo(Add(Value In Array(Global Variable(H), 1), 1), Count Of(Global Variable(B))));
+		Set Global Variable At Index(H, 2, 1.150);
+		Loop If Condition Is True;
+	}
+}
+
+rule("Rule 43")
+{
+	event
+	{
+		Ongoing - Global;
+	}
+}
+
+rule("@ junk is visible")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	conditions
+	{
+		Player Variable(Event Player, A) == True;
+		Player Variable(Event Player, O) > 0;
+	}
+}
