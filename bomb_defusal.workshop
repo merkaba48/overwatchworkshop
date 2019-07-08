@@ -709,16 +709,16 @@ rule("@ Defusers start DEFUSING")
 
 	actions
 	{
-		Set Player Variable(Event Player, Z, Filtered Array(Global Variable(C), Compare(Distance Between(Current Array Element,
+		Set Player Variable(Event Player, Z, Value In Array(Filtered Array(Global Variable(C), Compare(Distance Between(Current Array Element,
 			Ray Cast Hit Position(Eye Position(Event Player), Add(Eye Position(Event Player), Multiply(Facing Direction Of(Event Player),
-			20)), Null, Event Player, False)), <=, 0.500)));
-		Abort If(Compare(Player Variable(Event Player, Z), ==, Empty Array));
+			20)), Null, Event Player, False)), <=, 0.500)), 0));
+		Abort If(Compare(Player Variable(Event Player, Z), ==, False));
 		Set Player Variable(Event Player, E, 0);
 		Chase Player Variable At Rate(Event Player, E, Value In Array(Global Variable(G), 3), 1, None);
-		Set Player Variable At Index(Event Player, F, 0, Index Of Array Value(Global Variable(C), Value In Array(Player Variable(Event Player, Z), 0)));
+		Set Player Variable At Index(Event Player, F, 0, Player Variable(Event Player, Z));
 		Create In-World Text(All Players(All Teams), String("{0} {1} {2}", String("Stabilizing", Null, Null, Null), String("...", Null,
 			Null, Null), Round To Integer(Subtract(Value In Array(Global Variable(G), 3), Player Variable(Event Player, E)), Up)),
-			Value In Array(Global Variable(C), Value In Array(Player Variable(Event Player, F), 0)), 1.500, Do Not Clip,
+			Value In Array(Player Variable(Event Player, F), 0), 1.500, Do Not Clip,
 			Visible To Position and String);
 		Set Player Variable At Index(Event Player, F, 1, Last Text ID);
 		Create Effect(All Players(All Teams), Sphere, Blue, Value In Array(Global Variable(C), Value In Array(Player Variable(Event Player,
@@ -746,11 +746,12 @@ rule("@ Defusers DEFUSING COMPLETE")
 	actions
 	{
 		Set Player Variable(Event Player, Z, Value In Array(Player Variable(Event Player, F), 0));
-		Play Effect(All Players(All Teams), Good Explosion, Purple, Value In Array(Global Variable(C), Player Variable(Event Player, Z)),
-			1);
-		Play Effect(All Players(All Teams), Buff Explosion Sound, Purple, Value In Array(Global Variable(C), Player Variable(Event Player,
-			Z)), 100);
-		Destroy Effect(Value In Array(Global Variable(D), Player Variable(Event Player, Z)));
+		Play Effect(All Players(All Teams), Good Explosion, Purple, 
+		Player Variable(Event Player, Z), 1);
+		Play Effect(All Players(All Teams), Buff Explosion Sound, Purple, 
+		Player Variable(Event Player, Z), 100);
+		Set Player Variable(Event Player, Z, Index of Array Value(Global Variable(C), Player Variable(Event Player, Z)));
+		Destroy Effect(Value In Array(Global Variable(D), Player Variable(Event Player, Z)));		
 		Modify Global Variable(B, Remove From Array By Index, Player Variable(Event Player, Z));
 		Modify Global Variable(C, Remove From Array By Index, Player Variable(Event Player, Z));
 		Modify Global Variable(D, Remove From Array By Index, Player Variable(Event Player, Z));
@@ -816,7 +817,7 @@ rule("@ Defusers - defuse failed - TOO FAR AWAY")
 
 	conditions
 	{
-		Distance Between(Value In Array(Global Variable(C), Value In Array(Player Variable(Event Player, F), 0)), Ray Cast Hit Position(
+		Distance Between(Value In Array(Player Variable(Event Player, F), 0), Ray Cast Hit Position(
 			Eye Position(Event Player), Add(Eye Position(Event Player), Multiply(Facing Direction Of(Event Player), 30)), Null,
 			Event Player, False)) > 1;
 		Player Variable(Event Player, E) > 0;
